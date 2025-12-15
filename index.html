@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Sleep Protocol: Cocoa-G</title>
+    <style>
+        :root {
+            /* 护眼配色：使用琥珀色/橙色作为主色调，模拟 f.lux 效果，减少蓝光 */
+            --bg-color: #0d1117; /* GitHub Dark Dimmed */
+            --text-color: #c9d1d9;
+            --accent-color: #ffb74d; /* 柔和的琥珀色 */
+            --border-color: #30363d;
+            --success-color: #7ee787;
+            --card-bg: #161b22;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 680px;
+            width: 100%;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #238636;
+            color: #fff;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .version {
+            font-size: 0.8rem;
+            color: #8b949e;
+            font-family: sans-serif;
+        }
+
+        .ad-banner {
+            background: rgba(255, 183, 77, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            margin-bottom: 30px;
+            font-style: italic;
+            color: var(--accent-color);
+        }
+
+        /* --- 新增：可视化指南区域样式 --- */
+        .visual-guide-container {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .cheat-card-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            /* 稍微降低一点亮度以适配深色背景，鼠标悬停恢复 */
+            filter: brightness(0.9);
+            transition: filter 0.3s ease;
+        }
+        .cheat-card-img:hover {
+            filter: brightness(1);
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            background: transparent;
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px 24px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        /* -------------------------------- */
+
+
+        section {
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        /* BOM Table */
+        .bom-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .bom-table th, .bom-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bom-table th {
+            color: #8b949e;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* SOP Steps */
+        .step {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 25px;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--accent-color);
+            border-radius: 50%;
+        }
+
+        .step.done::before {
+            background: var(--accent-color);
+        }
+
+        .step-title {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .step-desc {
+            font-size: 0.95rem;
+            color: #8b949e;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #484f58;
+            margin-top: 50px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        a { color: var(--text-color); text-decoration: none; border-bottom: 1px dashed #8b949e; }
+        
+        /* Mobile tweak */
+        @media (max-width: 480px) {
+            body { padding: 15px; }
+            h1 { font-size: 1.3rem; }
+            .action-buttons { flex-direction: column; gap: 10px;}
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Deep Sleep Protocol: Cocoa-G <span class="badge">STABLE</span></h1>
+            <div class="version">Build: v1.0.3 | Target: Delta Wave Optimization</div>
+        </header>
+
+        <div class="ad-banner">
+            > “给大脑降温，把血糖拉直。”<br>
+            > 抛弃糖分致幻剂，加载 3000mg 甘氨酸载荷。今晚，Fuzz 出一条完美的睡眠曲线。
+        </div>
+
+        <section id="visual-guide">
+            <h2>🗺️ Visual Protocol (核心向导图)</h2>
+            <div class="visual-guide-container">
+                <img src="card.png" alt="Deep Sleep Protocol Cheat Card" class="cheat-card-img" id="protocolImage">
+                <div class="action-buttons">
+                    <button class="btn" id="copyBtn">📄 复制到剪贴板</button>
+                    <button class="btn" id="downloadBtn">⬇️ 下载 Cheat Card</button>
+                </div>
+            </div>
+        </section>
+        <section id="bom">
+            <h2>📦 BOM (Bill of Materials)</h2>
+            <table class="bom-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Dosage</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A2 奶粉</td>
+                        <td>25g - 30g</td>
+                        <td>基底 / 色氨酸</td>
+                    </tr>
+                    <tr>
+                        <td>生可可粉</td>
+                        <td>5g (1.5 tsp)</td>
+                        <td>镁源 / 风味</td>
+                    </tr>
+                    <tr>
+                        <td class="highlight">NOW Foods Glycine</td>
+                        <td class="highlight">3g - 5g (1 tsp)</td>
+                        <td class="highlight">核心助眠 / 甜味剂</td>
+                    </tr>
+                    <tr>
+                        <td>热水 (60℃)</td>
+                        <td>250ml</td>
+                        <td>溶剂</td>
+                    </tr>
+                    <tr>
+                        <td>海盐 (DLC)</td>
+                        <td>1 撮</td>
+                        <td>电解质 / 提味</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="sop">
+            <h2>⚙️ SOP (Standard Operating Procedure)</h2>
+            
+            <div class="step">
+                <span class="step-title">Phase 1: 干粉预混 (Dry Mix)</span>
+                <div class="step-desc">
+                    在马克杯中混合 <strong>可可粉</strong> 与 <strong>甘氨酸</strong>。用勺子彻底捣碎、拌匀。
+                    <br><em>*原理：甘氨酸颗粒作为磨料，防止可可结块。</em>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-title">Phase 2: 糊化 (Paste)</span>
+                <div class="step-desc">
+                    加入约 20ml 温水。快速搅拌直至变成深褐色浓稠浆液（类似巧克力酱）。
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-title">Phase 3: 融合 (Fusion)</span>
+                <div class="step-desc">
+                    加入奶粉，随后冲入剩余热水。充分搅拌。如有海盐，此刻撒入。
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-title">Phase 4: 部署 (Deploy)</span>
+                <div class="step-desc">
+                    在预定睡眠时间前 <strong>45-60 分钟</strong> 饮用。避免接触蓝光屏幕。
+                </div>
+            </div>
+        </section>
+
+        <section id="notes">
+            <h2>📝 Dev Notes</h2>
+            <ul>
+                <li><strong>Sweetness Patch:</strong> 甘氨酸甜度清爽。若需更厚重口感，建议添加 5ml 椰子油，<strong>严禁添加炼乳/蔗糖</strong>以防胰岛素尖峰。</li>
+                <li><strong>Compatibility:</strong> 经测试，该配方热稳定性良好，不会破坏甘氨酸结构。</li>
+                <li><strong>Debug:</strong> 若出现心率过高，请减少生可可粉用量至 2.5g。</li>
+            </ul>
+        </section>
+
+        <footer>
+            Generated for Sleep Fuzzing Project.<br>
+            <span style="opacity: 0.5;">EOF w</span>
+        </footer>
+    </div>
+
+    <script>
+        const imagePath = 'card.png';
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // 下载功能
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = imagePath;
+            link.download = 'Deep-Sleep-Protocol-CheatCard.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // 复制功能 (需要现代浏览器支持 Clipboard API)
+        copyBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(imagePath);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        [blob.type]: blob
+                    })
+                ]);
+                
+                // 复制成功的视觉反馈
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = '✅ 已复制到剪贴板!';
+                copyBtn.style.background = 'var(--accent-color)';
+                copyBtn.style.color = 'var(--bg-color)';
+                
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                    copyBtn.style.background = 'transparent';
+                    copyBtn.style.color = 'var(--accent-color)';
+                }, 2000);
+
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请尝试手动保存图片或使用最新版浏览器 (Chrome/Edge等)。');
+            }
+        });
+    </script>
+
+</body>
+</html>
